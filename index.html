@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaotic Attractor - Astral Stream Map</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030206;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .info-panel {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: rgba(10, 8, 16, 0.7);
+            padding: 18px 24px;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            backdrop-filter: blur(12px);
+            border: 1px rgba(255,255,255,0.08) solid;
+            pointer-events: none;
+        }
+        h3 { margin-top: 0; margin-bottom: 6px; font-size: 13px; letter-spacing: 2px; color: #ff007f; text-transform: uppercase; font-weight: 600; }
+        .math-box {
+            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #999;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .param-display {
+            font-size: 13px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffff;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="info-panel">
+        <h3>Astral Stream Map</h3>
+        <div class="math-box">
+            x₁ = sin(3x) * cos(y) + a * sin(x·y)<br>
+            y₁ = cos(3y) * sin(x) + b * exp(-x²)
+        </div>
+        <div class="param-display">
+            A = <span id="val-a">0.000</span><br>
+            B = <span id="val-b">0.000</span>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let x = 0.5;
+        let y = 0.5;
+        let time = 0; 
+
+        const dpr = window.devicePixelRatio || 1;
+        const pointsPerFrame = 30000; 
+
+        function resize() {
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
