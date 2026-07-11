@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>混沌吸引子 - 自動演化動畫 (Clifford Variant)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #020202;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+        #canvas {
+            display: block;
+        }
+        .info-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(10, 10, 10, 0.75);
+            padding: 15px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            backdrop-filter: blur(8px);
+            border: 1px rgba(255,255,255,0.1) solid;
+            pointer-events: none; /* 讓滑鼠可以穿透 */
+        }
+        h3 { margin-top: 0; margin-bottom: 8px; font-size: 15px; letter-spacing: 1px; color: #00ffcc; }
+        .math-box {
+            font-size: 11px;
+            font-family: monospace;
+            color: #aaa;
+            margin-bottom: 10px;
+        }
+        .param-display {
+            font-size: 13px;
+            font-family: monospace;
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="info-panel">
+        <h3>混沌吸引子自動演化中...</h3>
+        <div class="math-box">
+            x₁ = sin(x² - y² + a)<br>
+            y₁ = cos(2xy + b)
+        </div>
+        <div class="param-display">
+            a = <span id="val-a">0.00</span><br>
+            b = <span id="val-b">0.00</span>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resize);
+
+        // 初始狀態
+        let x = 0.1;
+        let y = 0.1;
+        
+        // 用於控制參數隨時間變化的時間軸計數器
+        let time = 0; 
+
+        // 效能設定：每影格計算點數
+        // 自動播放時調低一點（如 3000），配合殘影效果可以達到最佳流暢度
+        const pointsPerFrame = 3000; 
+
+        const valA = document.getElementById('val-a');
+        const valB = document.getElementById('val-b');
+
+        function draw() {
+            const width = canvas.width;
+            const height = canvas.height;
+            const scale = Math.min(width, height) * 0.35;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // 【關鍵】每一影格蓋上一層極度透明的黑，製造物質流動的「殘影（Motion Blur）」效果
+            ctx.fillStyle = 'rgba(2, 2, 2, 0.06)';
+            ctx.fillRect(0, 0, width, height);
+
+            // 【自動演化核心】讓 a 與 b 隨著時間正弦波動，產生滑順的循環變化
+            // 你可以修改裡面的常數來改變形變的速度與範圍
+            const a = -0.5 + Math.sin(time * 0.005) * 1.2;
+            const b = -1.0 + Math.cos(time * 0.003) * 0.8;
+
+            // 更新介面上的參數顯示
+            valA.innerText = a.toFixed(3);
+            valB.innerText = b.toFixed(3);
+
+            // 繪製當前參數下的數列點
+            for (let i = 0; i < pointsPerFrame; i++) {
+                const nextX = Math.sin(x * x - y * y + a);
+                const nextY = Math.cos(2 * x * y + b);
+
+                x = nextX;
+                y = nextY;
+
+                const screenX = cx + x * scale;
+                const screenY = cy + y * scale;
+
+                // 隨色彩基調動態演變（結合座標與時間，色彩會不斷漸變）
+                const r = Math.floor(100 + Math.sin(time * 0.01) * 55 + Math.abs(x) * 100);
+                const g = Math.floor(180 + Math.cos(time * 0.005) * 75);
+                const bVal = Math.floor(200 + Math.sin(x + time * 0.008) * 55);
+
+                ctx.fillStyle = `rgba(${r}, ${g}, ${bVal}, 0.15)`;
+                ctx.fillRect(screenX, screenY, 1, 1);
+            }
+
+            // 時間前進
+            time += 1;
+
+            requestAnimationFrame(draw);
+        }
+
+        // 啟動
+        resize();
+        draw();
+    </script>
+</body>
+</html>
