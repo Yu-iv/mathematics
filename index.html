@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>混沌吸引子動態視覺化 (Clifford Variant)</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #fff;
+        }
+        #canvas {
+            display: block;
+        }
+        .control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(20, 20, 20, 0.85);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            backdrop-filter: blur(5px);
+            width: 280px;
+        }
+        h3 { margin-top: 0; margin-bottom: 15px; font-size: 16px; letter-spacing: 1px; color: #00ffcc; }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            font-size: 12px;
+            margin-bottom: 5px;
+            color: #aaa;
+        }
+        input[type="range"] {
+            width: 100%;
+            accent-color: #00ffcc;
+        }
+        .val-display {
+            float: right;
+            color: #00ffcc;
+            font-weight: bold;
+        }
+        .btn {
+            background: #00ffcc;
+            color: #000;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.2s;
+        }
+        .btn:hover {
+            background: #00b38f;
+            box-shadow: 0 0 10px rgba(0,255,204,0.5);
+        }
+        .math-box {
+            font-size: 11px;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-family: monospace;
+            color: #e0e0e0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="control-panel">
+        <h3>混沌吸引子畫布</h3>
+        <div class="math-box">
+            x₁ = sin(x² - y² + a)<br>
+            y₁ = cos(2xy + b)
+        </div>
+        
+        <div class="control-group">
+            <label>參數 a: <span id="val-a" class="val-display">-0.72</span></label>
+            <input type="range" id="param-a" min="-2" max="2" step="0.01" value="-0.72">
+        </div>
+        
+        <div class="control-group">
+            <label>參數 b: <span id="val-b" class="val-display">-1.34</span></label>
+            <input type="range" id="param-b" min="-2" max="2" step="0.01" value="-1.34">
+        </div>
+
+        <div class="control-group">
+            <label>演化速度 (每影格點數): <span id="val-speed" class="val-display">5000</span></label>
+            <input type="range" id="speed" min="1000" max="20000" step="1000" value="5000">
+        </div>
+
+        <button class="btn" id="btn-random">隨機生成參數</button>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        // 調整畫布大小
+        function resize() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            resetSimulation();
+        }
+        window.addEventListener('resize', resize);
+
+        // 初始化變數
+        let a = -0.72;
+        let b = -1.34;
+        let speed = 5000;
+        let x = 0.1;
+        let y = 0.1;
+        let animationFrameId;
+
+        // UI 元素
+        const inputA = document.getElementById('param-a');
+        const inputB = document.getElementById('param-b');
+        const inputSpeed = document.getElementById('speed');
+        const valA = document.getElementById('val-a');
+        const valB = document.getElementById('val-b');
+        const valSpeed = document.getElementById('val-speed');
+        const btnRandom = document.getElementById('btn-random');
+
+        function updateLabels() {
+            valA.innerText = a.toFixed(2);
+            valB.innerText = b.toFixed(2);
+            valSpeed.innerText = speed;
+        }
+
+        function resetSimulation() {
+            // 清空畫布並填入微弱的黑色（留下一點點半透明可以做特殊效果，這裡直接清空）
+            ctx.fillStyle = '#050505';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            // 重置點的初始位置
+            x = 0.1;
+            y = 0.1;
+        }
+
+        // 核心渲染迴圈
+        function draw() {
+            const width = canvas.width;
+            const height = canvas.height;
+            // 算圖放大倍率與置中
+            const scale = Math.min(width, height) * 0.35;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // 每一影格繪製 'speed' 個點，提升渲染效能與流暢度
+            for (let i = 0; i < speed; i++) {
+                // 數學公式核心
+                const nextX = Math.sin(x * x - y * y + a);
+                const nextY = Math.cos(2 * x * y + b);
+
+                x = nextX;
+                y = nextY;
+
+                // 映射到畫布座標
+                const screenX = cx + x * scale;
+                const screenY = cy + y * scale;
+
+                // 根據座標動態生成漸層色彩 (冷色調青綠與藍)
+                const r = Math.floor(Math.abs(x) * 100);
+                const g = Math.floor(150 + Math.abs(y) * 105);
+                const bVal = Math.floor(200 + nextX * 55);
+
+                // 繪製極小的半透明點，累積起來會有細緻的星雲質感
+                ctx.fillStyle = `rgba(${r}, ${g}, ${bVal}, 0.12)`;
+                ctx.fillRect(screenX, screenY, 1, 1);
+            }
+
+            animationFrameId = requestAnimationFrame(draw);
+        }
+
+        // 事件監聽
+        inputA.addEventListener('input', (e) => {
+            a = parseFloat(e.target.value);
+            updateLabels();
+            resetSimulation();
+        });
+
+        inputB.addEventListener('input', (e) => {
+            b = parseFloat(e.target.value);
+            updateLabels();
+            resetSimulation();
+        });
+
+        inputSpeed.addEventListener('input', (e) => {
+            speed = parseInt(e.target.value);
+            updateLabels();
+        });
+
+        btnRandom.addEventListener('click', () => {
+            a = (Math.random() * 4) - 2;
+            b = (Math.random() * 4) - 2;
+            inputA.value = a;
+            inputB.value = b;
+            updateLabels();
+            resetSimulation();
+        });
+
+        // 啟動
+        resize();
+        draw();
+    </script>
+</body>
+</html>
