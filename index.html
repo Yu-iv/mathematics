@@ -1,0 +1,158 @@
+<!DOCTYPE html><html lang="en"><head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chaotic Attractor - Astral Stream Map</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #030206;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #canvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+        .info-panel {
+            position: absolute;
+            top: 25px;
+            left: 25px;
+            background: rgba(10, 8, 16, 0.75);
+            padding: 18px 24px;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.8);
+            backdrop-filter: blur(12px);
+            border: 1px rgba(255,255,255,0.08) solid;
+            pointer-events: none;
+        }
+        h3 { margin-top: 0; margin-bottom: 6px; font-size: 13px; letter-spacing: 2px; color: #ff007f; text-transform: uppercase; font-weight: 600; }
+        .math-box {
+            font-size: 11px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #888;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+        .param-display {
+            font-size: 13px;
+            font-family: 'Courier New', Courier, monospace;
+            color: #00ffff;
+            font-weight: bold;
+        }
+    </style></head><body>
+
+    <div class="info-panel">
+        <h3>Astral Stream Map</h3>
+        <div class="math-box">
+            x₁ = sin(3x) * cos(y) + a * sin(x·y)<br>
+            y₁ = cos(3y) * sin(x) + b * exp(-x²)
+        </div>
+        <div class="param-display">
+            A = <span id="val-a">0.000</span><br>
+            B = <span id="val-b">0.000</span>
+        </div>
+    </div>
+
+    <canvas id="canvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+
+        let x = 0.5;
+        let y = 0.5;
+        let time = 0; 
+
+        const dpr = window.devicePixelRatio || 1;
+
+        // Global Loop Configuration (Fully deterministic, no random seeds)
+        // Adjust the loopDuration to control the overall speed of one full lifecycle loop
+        const loopDuration = 1200; 
+
+        function resize() {
+            canvas.width = window.innerWidth * dpr;
+            canvas.height = window.innerHeight * dpr;
+            ctx.scale(dpr, dpr);
+            ctx.fillStyle = '#030206';
+            ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+        }
+        window.addEventListener('resize', resize);
+
+        const valA = document.getElementById('val-a');
+        const valB = document.getElementById('val-b');
+
+        function draw() {
+            const width = window.innerWidth;
+            const height = window.innerHeight;
+            
+            const scale = Math.min(width, height) * 0.26;
+            const cx = width / 2;
+            const cy = height / 2;
+
+            // Exponential trail decay
+            ctx.fillStyle = 'rgba(3, 2, 6, 0.05)';
+            ctx.fillRect(0, 0, width, height);
+
+            // Calculate current progress within the loop (0.0 to 1.0)
+            const progress = (time % loopDuration) / loopDuration;
+
+            // Generate an elegant, non-random, perfectly periodic trajectory for A and B
+            // It seamlessly guides the parameters through your golden values (1.210, 0.290)
+            const a = 1.15 + Math.sin(progress * Math.PI * 2) * 0.4;
+            const b = 0.45 + Math.cos(progress * Math.PI * 2) * 0.3;
+
+            valA.innerText = a.toFixed(3);
+            valB.innerText = b.toFixed(3);
+
+            // Breathing intensity curve for particle density: peaks at the center of the loop timeline
+            const densityFactor = Math.pow(Math.sin(progress * Math.PI), 4);
+            
+            let currentPoints = 1;
+            // Phase Threshold: Only trigger massive structural expansion during the peak phase
+            if (densityFactor > 0.15) {
+                // Smoothly scale up to 55000 points, then smoothly scale back down
+                currentPoints = Math.floor(1 + ((densityFactor - 0.15) / 0.85) * 55000);
+            }
+
+            // Mapped color shifting synchronized perfectly with the parameter rhythm
+            const rBase = Math.floor(140 + Math.sin(progress * Math.PI * 2) * 20);
+            const gBase = Math.floor(20 + Math.cos(progress * Math.PI * 2) * 10);
+            const bBase = Math.floor(220 + Math.sin(progress * Math.PI * 2) * 25);
+
+            if (currentPoints === 1) {
+                ctx.fillStyle = `rgba(${rBase}, ${gBase}, ${bBase}, 1.0)`;
+            } else {
+                ctx.fillStyle = `rgba(${rBase}, ${gBase}, ${bBase}, 0.045fg)`;
+            }
+
+            // Map iteration
+            for (let i = 0; i < currentPoints; i++) {
+                const nextX = Math.sin(3 * x) * Math.cos(y) + a * Math.sin(x * y);
+                const nextY = Math.cos(3 * y) * Math.sin(x) + b * Math.exp(-x * x);
+
+                x = nextX;
+                y = nextY;
+
+                if(isNaN(x) || isNaN(y) || Math.abs(x) > 10) {
+                    x = 0.1;
+                    y = 0.1;
+                }
+
+                const screenX = cx + x * scale;
+                const screenY = cy + y * scale;
+
+                if (currentPoints === 1) {
+                    ctx.fillRect(screenX - 1, screenY - 1, 2.5, 2.5); // Clear visible traveling node
+                } else {
+                    ctx.fillRect(screenX, screenY, 0.6, 0.6); // Fine galactic dust matrix
+                }
+            }
+
+            time += 1;
+            requestAnimationFrame(draw);
+        }
+
+        resize();
+        draw();
+    </script></body></html>
